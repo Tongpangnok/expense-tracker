@@ -1,18 +1,119 @@
 <html>
 <head>
 
-    <title></title></head>
+</head>
 <body>
-<h1>Random anime character generator</h1>
-<img id="animeChar" src="/images/itachi.jpg" alt="Itachi" height="500" width="400">
-<h1 id="ImageName">Itachi</h1>
-<button onclick="randomChar()">Generate</button>
+<h1>**********Expense Tracker**********</h1>
+<form action="/addExpense" method="post">
+ <p>Description:</p><input type="text" name="description" id="1">
+    <p>Amount:</p>  <input type="number" name="amount" id="2">
+    <p>Category:</p>
+    <select name="category" id="3">
+        <option value="Food">Food</option>
+        <option value="Travel">Travel</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Bills">Bills</option>
+        <option value="Entertainment">Entertainment</option>
+    </select>
+    <p>Date:</p> <input type="date" name="date" id="4"><br>
+    <button type="submit">Add Expense</button>
+</form>
+<button onclick="updateExpense()">Update</button>
+<button onclick="viewExpenses()">View All Expenses</button>
+<div id="expenses">Expenses</div>
+<p>Total Expenses:</p><div id="total">Total Expense</div>
+<select name="cateExpenses" onchange="showExpense(this.value)">
+    <option value="Food">Food</option>
+    <option value="Travel">Travel</option>
+    <option value="Shopping">Shopping</option>
+    <option value="Bills">Bills</option>
+    <option value="Entertainment">Entertainment</option>
+</select>
+<p>Expenses</p>
+<div id="ex"></div>
 <script>
-    async function  randomChar(){
-     const response=await fetch("/characters/random");
-     const character=await response.json();
-     document.getElementById("animeChar").src=character.imagePath;
-     document.getElementById("ImageName").textContent=character.name;
+    let editingId = null;
+    let categoryTotals={};
+    async function viewExpenses(){
+        categoryTotals = {};
+     let html=`<table border="1">
+         <tr>
+<th>ID</th>
+<th>Description</th>
+<th>Amount</th>
+<th>Category</th>
+<th>Date</th>
+<th>Action</th>
+         </tr>
+         `;
+     const response=await fetch("/viewExpenses");
+     const expenses=await response.json();
+        console.log("Expenses:", expenses);
+        let total=0;
+     expenses.forEach(expense=>{
+         total+=expense.amount;
+        if(!categoryTotals[expense.category])
+        {
+            categoryTotals[expense.category]=0;
+        }
+        categoryTotals[expense.category]+=expense.amount;
+
+         html+=`
+             <tr>
+             <td>${expense.id}</td>
+             <td>${expense.description}</td>
+             <td>${expense.amount}</td>
+             <td>${expense.category}</td>
+             <td>${expense.date}</td>
+             <td> <button onclick="deleteExpense(${expense.id})">Delete</button><button onclick="editExpense(${expense.id})">Edit</button></td>
+             </tr>
+
+         `
+     });
+        console.log(categoryTotals);
+     html+=`</table>`
+     document.getElementById("expenses").innerHTML=html;
+     document.getElementById("total").innerHTML=total;
+    }
+    function showExpense(category){
+      document.getElementById("ex").innerHTML=categoryTotals[category]||0;
+    }
+    async function deleteExpense(id){
+         await fetch(`/deleteExpense/${id}`,
+             {method:"DELETE"});
+         viewExpenses();
+    }
+    async function editExpense(id){
+        editingId = id;
+       const response= await fetch(`/getExpense/${id}`);
+       const ff=await  response.json();
+       document.getElementById("1").value=ff.description;
+        document.getElementById("2").value=ff.amount;
+        document.getElementById("3").value=ff.category;
+        document.getElementById("4").value=ff.date;
+
+    }
+    async function updateExpense(){
+        await fetch(`/updateExpense/${editingId}`,
+            {
+                method:"PUT",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({
+                    id:editingId,
+                    description:document.getElementById("1").value,
+                    amount:document.getElementById("2").value,
+                    category:document.getElementById("3").value,
+                    date:document.getElementById("4").value
+                })
+            });
+        viewExpenses();
+        editingId = null;
+
+        document.getElementById("1").value = "";
+        document.getElementById("2").value = "";
+        document.getElementById("3").value = "Food";
+        document.getElementById("4").value = "";
+
     }
 </script>
 </body>
